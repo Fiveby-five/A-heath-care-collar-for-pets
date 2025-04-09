@@ -4,6 +4,7 @@
 #define OVER_TEMPERATURE 1
 #define LOW_OXIGEN 2
 #define NORMAL 0
+#define PSerial Serial1
 
 
 
@@ -34,8 +35,14 @@ class Text{
     String Heart = "My heart beat is ";
     String Oxigen = "My oxigen ratio is ";
 
+
+    /// @brief This function will load the text according to the state and value, 0 = OverBPM, 1 = Overtemperature, 2 = LowOxigen , default = Normal
+    /// @tparam T 
+    /// @param state 
+    /// @param value 
+    /// @return 
     template <typename T>
-    String *LoadText(uint state , T value){
+    String LoadText(uint state , T value){
         String v = String(value);
         switch (state){
             case 0:
@@ -53,5 +60,9 @@ class Text{
         }
     }
 
-    void Speak(uint SerialChannel , int BPM , float Temp , float Oxigen);
+    void Speak(int BPM , float Temp , float Oxigen);
+    void BPMChanel(int state , int value);
+    void TempChanel(int state , float value);
+    void OxigenChanel(int state , float value);
+
 };

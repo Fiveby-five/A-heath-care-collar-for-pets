@@ -5,7 +5,7 @@
 
 #define BUS_SIZE 16
 #define GETMILLISECOND millis()
-#define DeBug Serial.println
+
 
 class BusMemBase{
     public:
@@ -36,7 +36,7 @@ class BusMem : public BusMemBase
 
         T GetData(){
             if(!DataPTR){
-                Debug("BusMem: Data is not set");
+                Serial.println("BusMem: Data is not set");
                 return T{};
             }
             return *DataPTR;
@@ -44,7 +44,7 @@ class BusMem : public BusMemBase
 
         uint8_t GetValid(){
             if(!FlagPTR){
-                Debug("BusMem: Flag is not set");
+                Serial.println("BusMem: Flag is not set");
                 return 0;
             }
             return *FlagPTR;
@@ -68,7 +68,7 @@ class BusOperation
         template <typename T>
         BusMem<T>& getChannel(uint index){
             if(index >= BUS_SIZE){
-                Debug("BusOperation: Channel is out of range");
+                Serial.println("BusOperation: Channel is out of range");
                 static BusMem<T> defaultChannel;
                 return defaultChannel;
 
@@ -86,7 +86,7 @@ class BusOperation
         template <typename T>
         void ReleaseChannel(uint index){
             if(index >= BUS_SIZE){
-                Debug("BusOperation: Channel is out of range");
+                Serial.println("BusOperation: Channel is out of range");
                 return;
             }
             channel[index].reset();
@@ -102,7 +102,7 @@ class BusOperation
         template <typename T>
         bool Timer(T dtms , uint index , bool reset = 0){
             if(index >= BUS_SIZE){
-                Debug("BusOperation: Timer channel is out of range");
+                Serial.println("BusOperation: Timer channel is out of range");
                 return false;
             }
             if(!timer[index]){
