@@ -7,7 +7,11 @@
 
 #endif
 
-
+/* The struct should be defined first if you use this class ,it should be define like this 
+Data<type1 , type2 , type3 , type4 , type5> name;
+And of courese you should define the class too;
+Through this class you can send data and recieve any data and ignore the messy ESP-NOW library
+*/
 
 template<typename T1 , typename T2 , typename T3 , typename T4 , typename T5>
 struct Data{
@@ -22,6 +26,7 @@ template<typename T1 , typename T2 , typename T3 , typename T4 , typename T5>
 class Send{
     private:
         uint8_t Mac[6];
+        bool isInit = false;
     public:
     using DataStc = Data<T1 , T2 , T3 , T4 , T5>;
 
@@ -49,11 +54,15 @@ class Send{
             esp_now_add_peer(&peer);
             Serial.println("ESP NOW Initialized");
             memcpy(Mac, mac, 6);
+            isInit = true;
         }
 
 
         void SendData(const DataStc &data){
-            esp_now_send(Mac, (uint8_t *)&data, sizeof(DataStc))
+            if(isInit == false){
+                Serial.println("Sending isn't initialized");
+            }
+            esp_now_send(Mac, (uint8_t *)&data, sizeof(DataStc));
         }
 };
 
@@ -70,7 +79,7 @@ class Receive{
     static DataStc DataRx;
 
     void Init(uint8_t *TargetMac){
-        WiFi.mode(WIFI_AP);
+        WiFi.mode(WIFI_STA);
         if (esp_now_init() != ESP_OK) {
             Serial.println("Initialzing failed");
             return;

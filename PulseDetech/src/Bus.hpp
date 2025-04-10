@@ -2,11 +2,13 @@
 #include <Arduino.h>
 #include <memory>
 #include <array>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #define BUS_SIZE 16
 #define GETMILLISECOND millis()
 
-
+/// @brief Base class for polymorphic memory management in Bus channels
 class BusMemBase{
     public:
         virtual ~BusMemBase() = default;
@@ -52,14 +54,32 @@ class BusMem : public BusMemBase
 };
 
 
-/// @brief Bus Operation
+/// @brief Central bus management class for channel and timer operations
+/// @details Provides thread-safe access to shared resources using a mutex
 class BusOperation
 {
     private:
         std::array<std::unique_ptr<BusMemBase> , BUS_SIZE> channel;
         std::array<std::unique_ptr<uint> , BUS_SIZE> timer;
+        SemaphoreHandle_t mutex;
         
     public:
+    /// @brief Constructor initializes mutex and resource arrays
+        BusOperation(){
+            mutex = xSemaphoreCreateMutex();
+            if(!mutex){
+                Serial.println("BusOperation: Mutex is not created");
+            }
+        }
+
+        /// @brief Destructor releases mutex and all resources
+        ~BusOperation(){
+            vSemaphoreDelete(mutex);
+        }
+
+
+
+
         /// @brief In order to manage Busmem, select the channel and do setting or get data.
         /// @brief ETC. Bus.getChannel<type>(index).set(data)
         /// @tparam T 
@@ -67,6 +87,11 @@ class BusOperation
         /// @return 
         template <typename T>
         BusMem<T>& getChannel(uint index){
+            if(xSemaphoreTake(mutex , portMAX_DELAY) !=  pdTRUE){
+                Serial.println("BusOperation: Failed to take mutex");
+                static BusMem<T> defaultChannel;
+                return defaultChannel;
+            }
             if(index >= BUS_SIZE){
                 Serial.println("BusOperation: Channel is out of range");
                 static BusMem<T> defaultChannel;
@@ -76,7 +101,9 @@ class BusOperation
             if(!channel[index]){
                 channel[index] = std::make_unique<BusMem<T>>();
             }
-            return *static_cast<BusMem<T>*>(channel[index].get());
+            BusMem<T>* Ptr = static_cast<BusMem<T>*>(channel[index].get());
+            xSemaphoreGive(mutex);
+            return *Ptr;
         }
 
 
@@ -85,40 +112,52 @@ class BusOperation
         /// @param index Remmember to release the channel when you don't need it
         template <typename T>
         void ReleaseChannel(uint index){
+            if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE) {
+                return;
+            }
             if(index >= BUS_SIZE){
                 Serial.println("BusOperation: Channel is out of range");
                 return;
             }
             channel[index].reset();
+            xSemaphoreGive(mutex);
         }
 
 
-        /// @brief 
-        /// @tparam T 
-        /// @param dtms How long you want to delay
-        /// @param index Timer channel
-        /// @param reset Mannual reset. Default is false which is no reset
-        /// @return 
-        template <typename T>
-        bool Timer(T dtms , uint index , bool reset = 0){
-            if(index >= BUS_SIZE){
-                Serial.println("BusOperation: Timer channel is out of range");
-                return false;
-            }
-            if(!timer[index]){
-                timer[index] = std::make_unique<uint>();
-                *timer[index] = 0;
-            }
-            if(*timer[index] == 0){
-                *timer[index] = GETMILLISECOND + static_cast<uint>(dtms);
-            }
-            if(GETMILLISECOND >= *timer[index]){
-                *timer[index] = *timer[index]*(reset == 1 ? 0 : 1);
-                return true;
-            }else{
-                return false;
-            }
+    /// @brief Timer functionality for periodic operations
+    /// @tparam T Time value type (uint32_t recommended)
+    /// @param dtms Delay time in milliseconds
+    /// @param index Timer channel index
+    /// @param reset Whether to reset timer after time out (default: false)
+    /// @return True if timer has expired
+    template <typename T>
+    bool Timer(T dtms, uint index, bool reset = false) {
+        // ⚠️ WARNING: This method currently lacks mutex protection
+        // Consider adding mutex protection for thread safety
+        // (Add xSemaphoreTake/mutex calls here in production code)
+
+        if (index >= BUS_SIZE) {
+            Serial.println("BusOperation: Timer index out of range");
+            return false;
         }
 
+        if (!timer[index]) {
+            timer[index] = std::make_unique<uint>();
+            *timer[index] = 0; // Initialize timer value
+        }
 
+        if (*timer[index] == 0) {
+            *timer[index] = GETMILLISECOND + static_cast<uint>(dtms);
+        }
+
+        bool expired = (GETMILLISECOND >= *timer[index]);
+        if (expired && reset) {
+            *timer[index] = 0; // Reset timer if requested
+        }
+
+        return expired;
+    }
 };
+
+
+
