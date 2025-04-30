@@ -13,6 +13,7 @@ And of courese you should define the class too;
 Through this class you can send data and recieve any data and ignore the messy ESP-NOW library
 */
 
+
 template<typename T1 , typename T2 , typename T3 , typename T4 , typename T5>
 struct Data{
     T1 data1;
@@ -42,7 +43,7 @@ class Send{
         /// @brief Get the MAC address of your target device, and initialize ESP-NOW
         /// @param mac 
         void Init(uint8_t *mac){
-            WiFi.mode(WIFI_STA);
+            WiFi.mode(WIFI_APSTA);
             if (esp_now_init() != ESP_OK) {
                 Serial.println("Error initializing ESP-NOW");
                 return;
@@ -77,22 +78,6 @@ class Receive{
     public:
     using DataStc = Data<T1 , T2 , T3 , T4 , T5>;
     static DataStc DataRx;
-
-    void Init(uint8_t *TargetMac){
-        WiFi.mode(WIFI_STA);
-        if (esp_now_init() != ESP_OK) {
-            Serial.println("Initialzing failed");
-            return;
-        }
-
-        esp_now_register_recv_cb(OnDataReceive);
-        esp_now_peer_info_t peer;
-        memcpy(peer.peer_addr, TargetMac, 6);
-        peer.channel = 0;
-        peer.ifidx = WIFI_IF_AP;
-        esp_now_add_peer(&peer);
-        Serial.println("Initialized complete");
-    }
 
     
     static void OnDataReceive(const uint8_t *mac, esp_now_recv_info_t *rxInfo, const uint8_t *data, int len) {

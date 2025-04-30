@@ -135,9 +135,9 @@ class Alg : public GatherData {
 
 
 
-        uint32_t AutoBrightness(char * mode){
-            switch(*mode){
-                case 'Red':
+        uint32_t AutoBrightness(uint mode){//0 = Red, 1 = IR, 2 = Green , 3 = ShutAll
+            switch(mode){
+                case 0:
                     uint illuminance;
                     mSensor.setPulseAmplitudeRed(1);
                     while(mSensor.getRed() < 20000){
@@ -145,7 +145,7 @@ class Alg : public GatherData {
                     }
                     return illuminance;
                     break;
-                case 'IR':
+                case 1:
                     uint illuminance;
                     mSensor.setPulseAmplitudeIR(1);
                     while(mSensor.getIR() < 20000){
@@ -153,7 +153,7 @@ class Alg : public GatherData {
                     }
                     return illuminance;
                     break;
-                case 'Green':
+                case 2:
                     uint illuminance;
                     mSensor.setPulseAmplitudeGreen(1);
                     while(mSensor.getGreen() < 20000){
@@ -161,7 +161,7 @@ class Alg : public GatherData {
                     }
                     return illuminance;
                     break;
-                case 'ShutAll':
+                case 3:
                     mSensor.setPulseAmplitudeRed(0);
                     mSensor.setPulseAmplitudeIR(0);
                     mSensor.setPulseAmplitudeGreen(0);
@@ -176,9 +176,9 @@ class Alg : public GatherData {
 
         template <typename T>
         double SPO2Alg(uint16_t Samples){
-            AutoBrightness("ShutAll");
-            AutoBrightness("IR");
-            AutoBrightness("Red");
+            AutoBrightness(3);
+            AutoBrightness(1);
+            AutoBrightness(0);
             uint32 *SampleIR = new uint32_t[Samples];
             uint32 *SampleRed = new uint32_t[Samples];
             while(int i < Samples){
@@ -217,11 +217,15 @@ class Application : public Alg{
     public:
     BusOperation BusOs;
 
+
+    /// @brief 
+    /// @param MemChannelIndex 
+    /// @return 
     bool BPM(int MemChannelIndex){
         bool flag = false;
         loadToBuffer(&flag);\
-        AutoBrightness("ShutAll");
-        AutoBrightness("IR");
+        AutoBrightness(3);
+        AutoBrightness(1);
         if(flag){
             double MainFrequency = FFTAnalsys();
             double bpm = 60.0*MainFrequency;
@@ -234,6 +238,9 @@ class Application : public Alg{
         }
     }
 
+    /// @brief mesuring temperature and save it into the channel you set. data type is double.
+    /// @param MemChannelIndex 
+    /// @return 
     bool Temperature(int MemChannelIndex){
         double temperature = mSensor.readTemperature();
         BusOs.getChannel<double>(MemChannelIndex).SetData(temperature);
@@ -241,7 +248,9 @@ class Application : public Alg{
         return true;
     }
 
-
+    /// @brief Save the SPO2 value into the channel you set, data type is double.
+    /// @param MemChannelIndex 
+    /// @return 
     bool SpO2(int MemChannelIndex){
         double SpO2 = SPO2Alg<double>(100);
         if(SpO2 == 0){
