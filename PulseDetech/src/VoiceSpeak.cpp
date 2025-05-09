@@ -32,7 +32,7 @@ void Text::Speak(int BPM , float Temp , float Oxigen){
     }
 
     if(isNormalBPM == 0 && isNormalTemp == 0 && isNormalOxi == 0){
-        PSerial.print(Text::LoadText(3 , 0));
+        PSerial.println(Text::LoadText(3 , 0));
     }
 
 }
@@ -54,7 +54,7 @@ void Text::BPMChanel(int state , int value){
         default:
             break;
         }
-    PSerial.print(text);
+    PSerial.println(text);
 }
 
 void Text::TempChanel(int state , float value){
@@ -71,7 +71,7 @@ void Text::TempChanel(int state , float value){
         default:
             break;
         }
-    PSerial.print(text);
+    PSerial.println(text);
 
 }
 
@@ -90,5 +90,5 @@ void Text::OxigenChanel(int state , float value){
         default:
             break;
         }
-    PSerial.print(text);
+    PSerial.println(text);
 }

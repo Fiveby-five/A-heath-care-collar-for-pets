@@ -46,17 +46,15 @@ class Text{
         String v = String(value);
         switch (state){
             case 0:
-                String OVBPM[3] = {OverHeartBeat[random(0,1)] ,Temp , v};
-                return OVBPM;
+                return OverHeartBeat[random(0,1)] + " " + Temp + v
             case 1:
-                String OVT[3] = {OverTemperature[random(0,1)] ,Heart , v};
-                return OVT;
+                return OverTemperature[random(0,1)] + " " + Heart + v;
             case 2:
-                String LOX[3] = {LowOxigen[random(0,1)] , Oxigen , v};
-                return LOX;
+                return LowOxigen[random(0,1)] + " " + Oxigen + v;
+            case 3:
+                return Normal[random(0,2)];
             default:
-                String HEALTH = Normal[random(0,2)];
-                return HEALTH;
+                return Normal[random(0,2)];
         }
     }
 

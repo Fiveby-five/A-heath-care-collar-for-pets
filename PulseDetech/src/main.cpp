@@ -38,11 +38,11 @@ void setup() {
   MUTEX = xSemaphoreCreateMutex();    // Use Mutex to ensure there will be only one task to access the data
   H_send.Init(macH);
   BusOs.getChannel<uint8_t>(1).SetData(0); // Channel 1 for switch RX or TX
-  BusOs.getChannel<double>(0).SetData(0); // Channel 0 for pass the BPM
+  BusOs.getChannel<float>(0).SetData(0); // Channel 0 for pass the BPM
   xTaskCreate(Com, "Com", 2048, NULL, 4, &ComHandle);
-  xTaskCreate(BPMDetect, "BPMDetect", 20000, NULL, 1, &BPMDetectHandle);
+  xTaskCreate(BPMDetect, "BPMDetect", 20000, NULL, 3, &BPMDetectHandle);
   xTaskCreate(Bus , "Bus", 8192, NULL, 5, NULL);
-  xTaskCreate(SPO2 , "SPO2", 8192, NULL, 1, &SPO2Handle);
+  xTaskCreate(SPO2 , "SPO2", 8192, NULL, 3, &SPO2Handle);
 
 }
 
@@ -56,8 +56,8 @@ void BPMDetect(void *pvParameters) {
     bool flag = 0;
     BPM.loadToBuffer(&flag);
     if(flag == 1){
-        double Rate = 60*BPM.FFTAnalsys();
-        BusOs.getChannel<double>(0).SetData(Rate);// BPM data
+       float Rate = 60*BPM.FFTAnalsys();
+        BusOs.getChannel<float>(0).SetData(Rate);// BPM data
         BPM.clearBuffer();
     }
     vTaskDelay(5);
@@ -76,6 +76,7 @@ void Com(void *pvParameters) {
   bool mode;
   while(1){
     delay(1);
+
   }
 }
 
@@ -86,7 +87,7 @@ void Bus(void *pvParameters) {
   while(1){
     if(BusOs.Timer(static_cast<uint32_t>(20000) , 0) == true){
       Serial.print("BPM:");
-      Serial.println(BusOs.getChannel<double>(0).GetData());
+      Serial.println(BusOs.getChannel<float>(0).GetData());
       BusOs.Timer(static_cast<uint32_t>(10250) , 0 , 1);
     }
 
@@ -100,9 +101,10 @@ void Bus(void *pvParameters) {
         vTaskPrioritySet(BPMDetectHandle , 4);
         vTaskPrioritySet(SPO2Handle , 4);
         BusOs.Timer(static_cast<uint32_t>(20000) , 1);
+        break;
       case 2:
-        DataWireless.data1 = BusOs.getChannel<double>(0).GetData();
-        DataWireless.data2 = BusOs.getChannel<double>(2).GetData();
+        DataWireless.data1 = BusOs.getChannel<float>(0).GetData();
+        DataWireless.data2 = BusOs.getChannel<float>(2).GetData();
         H_send.SendData(DataWireless);
       default:
         break;

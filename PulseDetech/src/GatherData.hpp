@@ -107,6 +107,7 @@ class Alg : public GatherData {
             delete[] RawMag;
             delete[] RawFreq;
             double MainFrequency = WeightAva(MedFreq, RawFreq, 1.0, indexOfMax, 3);
+            
             return MainFrequency;
         }
 
@@ -179,14 +180,15 @@ class Alg : public GatherData {
             AutoBrightness(3);
             AutoBrightness(1);
             AutoBrightness(0);
-            uint32 *SampleIR = new uint32_t[Samples];
-            uint32 *SampleRed = new uint32_t[Samples];
-            while(int i < Samples){
-                int e;
+            std::unique_ptr<uint32_t[]> SampleIR(new uint32_t[Samples]);
+            std::unique_ptr<uint32_t[]> SampleRed(new uint32_t[Samples]);
+            int e = 0 , i = 0;
+            while(i < Samples){
                 if(mSensor.check()){
                     SampleIR[i] = mSensor.getIR();
                     SampleRed[i] = mSensor.getRed();
                     i++;
+                    e = 0;
                 }else{
                     e++;
                 }
@@ -200,8 +202,8 @@ class Alg : public GatherData {
             double V1;
             double V2;
             for(int i = 0; i < Samples; i++){
-                V1 = (SampleRed[i] - a1)(SampleIR[i] - a2)*SampleRed[i] / Samples;
-                V2 = pow((SampleIR[i] - a2),2.0) * SampleIR[i] / Samples;
+                V1 = (SampleRed[i] - a1)*(SampleIR[i] - a2)* SampleRed[i] / Samples;
+                V2 = pow((SampleIR[i] - a2), 2.0) * SampleIR[i] / Samples;
             }
             R = V1/V2;
             return 109.3-11.2*R;

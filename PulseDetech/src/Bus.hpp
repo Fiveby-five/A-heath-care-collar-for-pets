@@ -75,6 +75,8 @@ class BusOperation
         /// @brief Destructor releases mutex and all resources
         ~BusOperation(){
             vSemaphoreDelete(mutex);
+            for(auto& t : timer) if(t) t.reset();
+            for(auto& c : channel) if(c) c.reset();
         }
 
 
@@ -132,9 +134,11 @@ class BusOperation
     /// @return True if timer has expired
     template <typename T>
     bool Timer(T dtms, uint index, bool reset = false) {
-        // ⚠️ WARNING: This method currently lacks mutex protection
-        // Consider adding mutex protection for thread safety
-        // (Add xSemaphoreTake/mutex calls here in production code)
+
+        if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE) {
+            Serial.println("BusOperation: Failed to take mutex in Timer()");
+            return false;
+        }
 
         if (index >= BUS_SIZE) {
             Serial.println("BusOperation: Timer index out of range");
@@ -143,8 +147,13 @@ class BusOperation
 
         if (!timer[index]) {
             timer[index] = std::make_unique<uint>();
-            *timer[index] = 0; // Initialize timer value
-        }
+            if (!timer[index]) {
+                xSemaphoreGive(mutex);
+                Serial.println("BusOperation: Failed to allocate timer memory");
+                return false;
+            }
+            *timer[index] = 0;
+        }//Initialization
 
         if (*timer[index] == 0) {
             *timer[index] = GETMILLISECOND + static_cast<uint>(dtms);
@@ -154,6 +163,8 @@ class BusOperation
         if (expired && reset) {
             *timer[index] = 0; // Reset timer if requested
         }
+
+        xSemaphoreGive(mutex);
 
         return expired;
     }
